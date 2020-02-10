@@ -7,11 +7,11 @@
 
 ## *Contents*
 
-- ### [Chapter 01]( https://github.com/MoochiPark/spring/chapter01 )
+- ### [Chapter 01]( https://github.com/MoochiPark/spring/tree/master/chapter01 )
 
   #### 들어가며
 
-- ### [Chapter 02]( https://github.com/MoochiPark/spring/chapter02 )
+- ### [Chapter 02]( https://github.com/MoochiPark/spring/tree/master/chapter02 )
 
   #### 스프링 시작하기
 
