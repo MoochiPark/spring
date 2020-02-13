@@ -11,7 +11,7 @@ public class RegisterRequest {
     return email;
   }
 
-  public void setEmail(String email) {
+  public void setEmail(final String email) {
     this.email = email;
   }
 
@@ -19,7 +19,7 @@ public class RegisterRequest {
     return password;
   }
 
-  public void setPassword(String password) {
+  public void setPassword(final String password) {
     this.password = password;
   }
 
@@ -27,7 +27,7 @@ public class RegisterRequest {
     return confirmPassword;
   }
 
-  public void setConfirmPassword(String confirmPassword) {
+  public void setConfirmPassword(final String confirmPassword) {
     this.confirmPassword = confirmPassword;
   }
 
@@ -35,12 +35,12 @@ public class RegisterRequest {
     return name;
   }
 
-  public void setName(String name) {
+  public void setName(final String name) {
     this.name = name;
   }
 
-  public boolean isPasswordEqualTOConfirmPassword() {
-    return password.equals(confirmPassword);
+  public boolean isPasswordEqualToConfirmPassword() {
+    return !password.equals(confirmPassword);
   }
 
 }

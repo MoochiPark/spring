@@ -572,7 +572,7 @@ MemberDao 클래스가 아니라 CachedMemberDao 클래스를 사용해야 한�
 
 작성할 메인 클래스의 코드가 다소 길기 때문에 나눠서 살펴보겠다. 처음 살펴볼 코드는 콘솔에서 명령어를 입력받아 알맞은 기능을 실행하는 부분이다. 
 
-> *Assembler.java (Assembler를 사용하는 코드)*
+> *MainForAssembler.java (메인 메서드 부분)*
 
 ```java
 package chapter03.main;
@@ -607,4 +607,604 @@ public class MainForAssembler {
   }
 ```
 
-- 입력한 문자열이 "new "로 시작하면 processNewCommand()
+- 입력한 문자열이 "new "로 시작하면 processNewCommand() 메서드를 실행한다.
+- 입력한 문자열이 "change "로 시작하면 processChangeCommand() 메서드를 실행한다.
+- 명령어를 잘못 입력한 경우 도움말을 출력해주는 printHelp() 메서드를 실행한다.
+
+- 22, 25행: "new a@a.com name pwd pwd" -> {"new", "a@a.com", "name",  "pwd", "pwd"}
+
+
+
+> *MainForAssembler.java (Assembler를 사용하는 코드)*
+
+```java
+
+  private static Assembler assembler = new Assembler();
+
+  private static void processNewCommand(final String... arg) {
+    if (arg.length != 5) {
+      printHelp();
+      return;
+    }
+    MemberRegisterService regSvc = assembler.getMemberRegisterService();
+    RegisterRequest req = new RegisterRequest();
+    req.setEmail(arg[1]);
+    req.setName(arg[2]);
+    req.setPassword(arg[3]);
+    req.setConfirmPassword(arg[4]);
+
+    if (!req.isPasswordEqualTOConfirmPassword()) {
+      System.out.println("암호의 확인이 일치하지 않습니다.\n");
+      return;
+    }
+    try {
+      regSvc.regist(req);
+      System.out.println("등록했습니다.\n");
+    } catch (DuplicateMemberException e) {
+      System.out.println("이미 존재하는 이메일입니다.\n");
+    }
+  }
+
+  private static void processChangeCommand(final String... arg) {
+    if (arg.length != 4) {
+      printHelp();
+      return;
+    }
+    ChangePasswordService changePwdSvc = assembler.getChangePasswordService();
+    try {
+      changePwdSvc.chagnePassword(arg[1], arg[2], arg[3]);
+      System.out.println("암호를 변경했습니다.\n");
+    } catch (MemberNotFoundException e) {
+      System.out.println("존재하지 않는 이메일입니다.\n");
+    } catch (WrongIdPasswordException e) {
+      System.out.println("이메일과 암호가 일치하지 않습니다.\n");
+    }
+  }
+
+  private static void printHelp() {
+    System.out.println();
+    System.out.println("잘못된 명령입니다. 아래 명령어 사용법을 확인하세요.");
+    System.out.println("명령어 사용법:");
+    System.out.println("new 이메일 이름 암호 암호확인");
+    System.out.println("change 이메일 현재비번 변경비번");
+    System.out.println();
+  }
+
+}
+```
+
+- Assembler 클래스의 생성자에서 필요한 객체를 생성하고 의존을 주입한다.
+
+  2행에서 객체를 생성하는 시점에 사용할 객체가 모두 생성된다.
+
+
+
+모두 작성했으니 MainForAssembler에서 Run하여 new, change 명령어들을 테스트 해보자.
+
+
+
+## 스프링의 DI 설정
+
+지금까지 의존이 무엇이고 DI를 이용해 의존 객체를 주입하는 방법에 대해 알아봤다. 그리고 객체를 생성하고 의존 주입을 이용해서 객체를 서로 연결해주는 조립기에 대해서 살펴봤다. 이 이유는 스프링이 DI를 지원하는 조립기이기 때문이다. 
+
+실제로 스프링은 앞서 구현한 조립기와 유사한 기능을 제공한다. 
+
+- 스프링은 Assembler 클래스의 생성자 코드처럼 필요한 객체를 생성하고 생성한 객체에 의존을 주입한다.
+- 또한 Assembler.getMemberRegisterService() 메서드처럼 객체를 제공하는 기능을 정의하고 있다.
+- 둘의 차이점은 Assembler는 특정 타입의 클래스만 생성한 반면 스프링은 범용 조립기이다.
+
+
+
+### 스프링을 이용한 객체 조립과 사용
+
+앞서 구현했던 Assembler 대신 스프링을 사용하는 코드를 작성해보자. 
+
+스프링을 사용하려면 먼저 어떤 객체를 생성하고, 의존을 어떻게 주입할지를 정의한 설정 정보를 작성해야 한다.
+
+> *AppCtx.java*
+
+```java
+package chapter03.config;
+
+import chapter03.spring.ChangePasswordService;
+import chapter03.spring.MemberDao;
+import chapter03.spring.MemberRegisterService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class AppCtx {
+
+  @Bean
+  public MemberDao memberDao() {
+    return new MemberDao();
+  }
+
+  @Bean
+  public MemberRegisterService memberRegisterService() {
+    return new MemberRegisterService(memberDao());
+  }
+
+  @Bean
+  ChangePasswordService changePasswordService() {
+    ChangePasswordService changePasswordService = new ChangePasswordService();
+    changePasswordService.setMemberDao(memberDao());
+    return changePasswordService;
+  }
+
+}
+```
+
+- **@Configuration:** 스프링 설정 클래스를 의미한다. 이 애노테이션을 붙여야 스프링 설정 클래스로 사용한다.
+- **@Bean:** 해당 메서드가 생성한 객체를 스프링 빈이라고 설정한다. 
+
+
+
+이제 설정 클래스를 이용해서 컨테이너를 생성해야 한다. 2장에서 배운 AnnotationConfigApplicationContext 
+클래스를 이용해서 스프링 컨테이너를 생성할 수 있다.
+
+​		`ApplicationContext ctx = new AnnotationConfigApplicationContext(AppCtx.class);`
+
+컨테이너를 생성하면 getBean() 메서드를 이용해서 사용할 객체를 구할 수 있다.
+
+```java
+MemberRegisterService regSvc = 
+  ctx.getBean("memberRegSvc", MemberRegisterService.class)
+```
+
+위 코드는 스프링 컨테이너(ctx)로부터 이름이 "memberRegSvc"인 빈 객체를 구한다.
+
+이제 Assembler 클래스를 이용해서 작성한 MainForAssembler를 스프링 컨테이너를 사용하도록 변경하자.
+
+> *MainForSpring.java*
+
+```java
+package chapter03.main;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import chapter03.config.AppCtx;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+import chapter03.spring.*;
+
+public class MainForSpring {
+
+  private static ApplicationContext ctx = null;
+
+  public static void main(String... args) throws IOException {
+    ctx = new AnnotationConfigApplicationContext(AppCtx.class);
+
+    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+    while (true) {
+      System.out.println("명령어를 입력하세요:");
+      String command = reader.readLine();
+      if (command.equalsIgnoreCase("exit")) {
+        System.out.println("종료합니다.");
+        break;
+      }
+      if (command.startsWith("new ")) {
+        processNewCommand(command.split(" "));
+        continue;
+      } else if (command.startsWith("change ")) {
+        processChangeCommand(command.split(" "));
+        continue;
+      }
+      printHelp();
+    }
+  }
+
+  private static void processNewCommand(String... arg) {
+    if (arg.length != 5) {
+      printHelp();
+      return;
+    }
+    MemberRegisterService regSvc =
+        ctx.getBean("memberRegSvc", MemberRegisterService.class);
+    RegisterRequest req = new RegisterRequest();
+    req.setEmail(arg[1]);
+    req.setName(arg[2]);
+    req.setPassword(arg[3]);
+    req.setConfirmPassword(arg[4]);
+
+    if (!req.isPasswordEqualToConfirmPassword()) {
+      System.out.println("암호와 확인이 일치하지 않습니다.\n");
+      return;
+    }
+    try {
+      regSvc.regist(req);
+      System.out.println("등록했습니다.\n");
+    } catch (DuplicateMemberException e) {
+      System.out.println("이미 존재하는 이메일입니다.\n");
+    }
+  }
+
+  private static void processChangeCommand(String... arg) {
+    if (arg.length != 4) {
+      printHelp();
+      return;
+    }
+    ChangePasswordService changePwdSvc =
+        ctx.getBean("changePwdSvc", ChangePasswordService.class);
+    try {
+      changePwdSvc.changePassword(arg[1], arg[2], arg[3]);
+      System.out.println("암호를 변경했습니다.\n");
+    } catch (MemberNotFoundException e) {
+      System.out.println("존재하지 않는 이메일입니다.\n");
+    } catch (WrongIdPasswordException e) {
+      System.out.println("이메일과 암호가 일치하지 않습니다.\n");
+    }
+  }
+
+  private static void printHelp() {
+    System.out.println();
+    System.out.println("잘못된 명령입니다. 아래 명령어 사용법을 확인하세요.");
+    System.out.println("명령어 사용법:");
+    System.out.println("new 이메일 이름 암호 암호확인");
+    System.out.println("change 이메일 현재비번 변경비번");
+    System.out.println();
+  }
+
+}
+```
+
+MainForSpring 클래스가 MainForAssembler 클래스와 다른 점은 Assembler 클래스 대신 스프링 컨테이너인
+ApplicationContext를 사용했다는 것뿐이다.
+
+
+
+### DI 방식 1: 생성자 방식
+
+MemberRegisterService 클래스를 보면 생성자를 통해 의존 객체를 주입받아 필드<sup>this.memberDao</sup>에 할당했다.
+
+```java
+public MemberRegisterService(final MemberDao memberDao) {
+  this.memberDao = memberDao;
+}
+```
+
+스프링 자바 설정에서는 생성자를 이용해서 의존 객체를 주입하기 위해 해당 설정을 담은 메서드를 호출했다.
+
+```java
+@Bean
+public MemberDao memberDao() {
+  return new MemberDao();
+}
+
+@Bean
+public MemberRegisterService memberRegSvc() {
+  return new MemberRegisterService(memberDao());
+}
+```
+
+생성자에 전달할 의존 객체가 두 개 이상이어도 동일한 방식으로 주입하면 된다. 생성자 파라미터가 두 개인 예제를 살펴보기 전에 예제를 실행하는데 필요한 코드를 추가하자.
+
+> *MemberDao.java*
+
+```java
+public Collection<Member> selectAll() {
+  return map.values();
+}
+```
+
+
+
+다음 추가할 코드는 MemberPrinter 클래스이다.
+
+> *MemberPrinter.java*
+
+```java
+package chapter03.spring;
+
+public class MemberPrinter {
+  
+  public void print(Member member) {
+    System.out.printf(
+        "회원 정보: 아이디=%d, 이메일=%s, 이름=%s, 등록일=%tF\n",
+        member.getId(), member.getEmail(),
+        member.getName(), member.getRegisterDateTime());
+  }
+  
+}
+```
+
+이제 생성자로 두 개의 파라미터를 전달받는 클래스를 작성해보자. 
+
+> *MemberListPrinter.java*
+
+```java
+package chapter03.spring;
+
+import java.util.Collection;
+
+public class MemberListPrinter {
+  
+  private MemberDao memberDao;
+  private MemberPrinter printer;
+  
+  public MemberListPrinter(MemberDao memberDao, MemberPrinter printer) {
+    this.memberDao = memberDao;
+    this.printer = printer;
+  }
+  
+  public void printAll() {
+    memberDao.selectAll().forEach(m -> printer.print(m));
+  }
+  
+}
+```
+
+생성자가 두 개인 경우에도 동일하게 각 파라미터에 해당하는 메서드를 호출해서 의존 객체를 주입한다.
+
+> *AppCtx.java*
+
+```java
+...생략
+    @Bean
+  public MemberPrinter memberPrinter() {
+    return new MemberPrinter();
+  }
+  
+  @Bean
+  public MemberListPrinter listPrinter() {
+    return new MemberListPrinter(memberDao(), memberPrinter());
+  }
+...생략
+```
+
+
+
+위 설정이 올바르게 동작하는지 확인하기 위해 MainForSpring에 추가하자.
+
+> *MainForSpring.java*
+
+```java
+...생략
+  if (command.startsWith("new ")) {
+        processNewCommand(command.split(" "));
+        continue;
+      } else if (command.startsWith("change ")) {
+        processChangeCommand(command.split(" "));
+        continue;
+      } else if (command.equals("list")) {
+        processListCommand();
+        continue;
+      }
+...생략
+    private static void processListCommand() {
+    MemberListPrinter listPrinter = 
+      ctx.getBean("listPrinter", MemberListPrinter.class);
+    listPrinter.printAll();
+  }
+...생략
+```
+
+
+
+### DI 방식 2: 세터 메서드 방식
+
+생성자 외에 세터 메서드를 이용해서 객체를 주입받기도 한다. 일반적인 세터<sup>setter</sup> 메서드는 자바빈 규칙에 따라 
+다음과 같이 작성한다.
+
+- 메서드 이름이 set으로 시작한다.
+- set 뒤에 첫 글자는 대문자로 시작한다.
+- 파라미터가 1개이다.
+- 리턴 타입이 void이다.
+
+
+
+세터 메서드를 이용해서 의존 객체를 주입받는 코드를 작성해보자.
+
+> *MemberInfoPrinter.java*
+
+```java
+package chapter03.spring;
+
+public class MemberInfoPrinter {
+  
+  private MemberDao memberDao;
+  private MemberPrinter printer;
+  
+  public void printMemberInfo(final String email) {
+    Member member = memberDao.selectByEmail(email);
+    if (member == null) {
+      System.out.println("데이터 없음\n");
+      return;
+    }
+    printer.print(member);
+    System.out.println();
+  }
+  
+  public void setMemberDao(final MemberDao memberDao) {
+    this.memberDao = memberDao;
+  }
+  
+  public void setPrinter(final MemberPrinter printer) {
+    this.printer = printer;
+  }
+  
+}
+```
+
+세터 메서드를 이용해서 의존을 주입하는 설정 코드를 AppCtx 클래스에 추가하자. 
+
+> *AppCtx.java*
+
+```java
+...생략
+  @Bean
+  public MemberInfoPrinter infoPrinter() {
+    MemberInfoPrinter infoPrinter = new MemberInfoPrinter();
+    infoPrinter.setMemberDao(memberDao());
+    infoPrinter.setPrinter(memberPrinter());
+    return infoPrinter;
+  }
+...생략  
+```
+
+
+
+이제 MainForSpring 코드에 MemberInfoPrinter 클래스를 사용하는 코드를 추가해보자.
+
+> *MainForSpring.java*
+
+```java
+...생략
+    private static void processListCommand() {
+    MemberListPrinter listPrinter = 
+      ctx.getBean("listPrinter", MemberListPrinter.class);
+    listPrinter.printAll();
+  }
+
+  private static void processInfoCommand(final String... arg) {
+    if (arg.length != 2) {
+      printHelp();
+      return;
+    }
+    MemberInfoPrinter infoPrinter = 
+      ctx.getBean("infoPrinter", MemberInfoPrinter.class);
+    infoPrinter.printMemberInfo(arg[1]);
+  }
+...생략
+```
+
+
+
+> **생성자 vs 세터 메서드**
+>
+> 두 방식은 상황에 따라 두 방식을 혼용해서 사용한다고 한다. 두 방식은 각자 장점이 있다.
+>
+> - 생성자 방식: 빈 객체를 생성하는 시점에 모든 의존 객체가 주입된다.
+> - 세터 메서드 방식: 세터 메서드 이름을 통해 어떤 의존 객체가 주입되는지 알 수 있다.
+>
+> 각 방식의 장점은 곧 다른 방식의 단점이다. 예를 들어 생성자의 파라미터 개수가 많을 경우 각 인자가 어떤 
+> 의존 객체를 설정하는지 알아내려면 생성자의 코드를 확인해야 한다. 하지만 세터 메서드 방식은 메서드
+> 이름만으로도 어떤 의존 객체를 설정하는지 쉽게 유추할 수 있다. 
+>
+> 반면에 생성자 방식은 빈 객체를 생성하는 시점에 필요한 모든 의존 객체를 주입받기 때문에 객체를 사용할 때 완전한 상태로 사용할 수 있다. 하지만 세터 메서드 방식은 세터 메서드를 사용해서 의존 객체를 전달하지 않아도 빈 객체를 때문에 객체를 사용하는 시점에 NullPointerException이 발생할 수 있다.
+
+
+
+### 기본 데이터 타입 값 설정
+
+다음 코드는 두 개의 int 타입 값을 세터 메서드로 전달받는다.
+
+> *VersionPrinter.java*
+
+```java
+package chapter03.spring;
+
+public class VersionPrinter {
+
+  private int majorVersion;
+  private int minorVersion;
+
+  public void print() {
+    System.out.printf("이 프로그램의 버전은 %d.%d입니다. \n\n", majorVersion, minorVersion);
+  }
+
+  public void setMajorVersion(final int majorVersion) {
+    this.majorVersion = majorVersion;
+  }
+
+  public void setMinorVersion(final int minorVersion) {
+    this.minorVersion = minorVersion;
+  }
+
+}
+```
+
+int, long과 같은 기본 데이터 타입과 String 타입의 값은 일반 코드처럼 값을 설정하면 된다.
+
+> *AppCtx.java*
+
+```java
+...생략
+	@Bean
+  public VersionPrinter versionPrinter() {
+    VersionPrinter versionPrinter = new VersionPrinter();
+    versionPrinter.setMajorVersion(5);
+    versionPrinter.setMinorVersion(0);
+    return versionPrinter;
+  }
+...생략
+```
+
+빈 객체를 하나 더 추가했으니 실제로 동작하는지 확인하기 위한 코드를 추가해보자.
+
+> *MainForSpring.java*
+
+```java
+...생략
+        } else if (command.equals("version")) {
+        processVersionCommand();
+        continue;
+      }
+...생략
+  private static void processVersionCommand() {
+    ctx.getBean("versionPrinter", VersionPrinter.class).print();
+  }
+...생략
+```
+
+위 코드를 실행하고 version 명령어를 입력하면 versionPrinter 빈 객체의 print() 메서드가 실행된다.
+
+콘솔에 출력된 메시지를 보면 빈을 설정할 때 사용한 majorVersion 프로퍼티와 minorVersion 프로퍼티의 값이 출력된 것을 확인할 수 있다.
+
+
+
+## @Configuration 설정 클래스의 @Bean 설정과 싱글톤
+
+앞서 작성했던 AppCtx 클래스의 일부 코드를 다시 보자.
+
+```java
+@Configuration
+public class AppCtx {
+
+  @Bean
+  public MemberDao memberDao() {
+    return new MemberDao();
+  }
+
+  @Bean
+  public MemberRegisterService memberRegSvc() {
+    return new MemberRegisterService(memberDao());
+  }
+
+  @Bean
+  ChangePasswordService changePwdSvc() {
+    ChangePasswordService changePwdSvc = new ChangePasswordService();
+    changePwdSvc.setMemberDao(memberDao());
+    return changePwdSvc;
+  }
+```
+
+memberRegSvc() 메서드와 changePwdSvc() 메서드는 둘 다 memberDao() 메서드를 실행하고 있다. 그리고 memberDao() 메서드는 매번 새로운 MemberDao 객체를 생성해서 리턴한다. 여기서 궁금증이 생긴다.
+
+- memberDao()가 새로운 MemberDao 객체를 생성해서 리턴하므로
+  - memberRegSvc()에서 생성한 MemberRegisterService 객체와 changePwdSvc()에서 생성한 ChangePasswordService 객체는 서로 다른 MemberDao 객체를 사용하는 것이 아닌가?
+  - 서로 다른 객체를 사용한다면 MainForSpring에서 new 명령어로 등록한 회원 정보를 저장할 때 사용하는 MemberDao와 change 명령어로 수정할 회원 정보를 찾을 때 사용하는 MemberDao는 다른 객체 아닌가?
+
+그런데 앞서 2장에서 스프링 컨테이너가 생성한 빈은 싱글톤 객체라고 한 것을 기억할 것이다. 스프링 컨테이너는 @Bean이 붙은 메서드에 대해 한 개의 객체만 생성한다. 이는 memberDao()를 몇 번을 호출하더라도 항상 같은 객체를 리턴한다는 것을 의미한다.
+
+이게 어떻게 가능할까? 스프링은 설정 클래스를 그대로 사용하지 않는다. 대신 설정 클래스를 상속한 새로운 설정 클래스를 만들어서 사용한다. 스프링이 런타임에 생성한 설정 클래스는 다음과 유사한 방식으로 동작한다.
+
+> *AppCtxExt.java (이 코드는 가상의 코드일 뿐 실제 스프링 코드는 이보다 훨씬 복잡하다)*
+
+```java
+public class AppCtxExt extends AppCtx {
+  private Map<String, Object> beans = ...;
+  
+  @Override
+  public MemberDao memberDao() {
+    if (!beans.containsKey("memberDao"))
+      beans.put("memberDao", super.memberDao());
+    
+    return (MemberDao) beans.get("memberDao");
+  }
+}
+```
+
+스프링이 런타임에 생성한 설정 클래스의 memberDao() 메서드는 매번 새로운 객체를 생성하지 않는다. 대신 한 번 생성한 객체를 보관했다가 이후에는 동일한 객체를 리턴한다. 따라서 memberRegSvc() 메서드와 changePwdSvc() 메서드에서 memberDao() 메서드를 각각 실행해도 동일한 MemberDao 객체를 사용한다.
