@@ -1402,4 +1402,125 @@ public class AppConf2 {
 스프링 컨테이너는 설정 클래스에서 사용한 @Autowired에 대해서도 자동 주입을 처리한다. 실제로 스프링은 
 @Configuration 애노테이션이 붙은 설정 클래스를 내부적으로 스프링 빈으로 등록한다. 그리고 다른 빈과 마찬가지로 @Autowired가 붙은 대상에 대해 알맞은 빈을 자동으로 주입한다.
 
-즉 스프링 컨테이너는 AppConf2 객체를 빈으로 등록하고, @Autowired 애노테이션이 붙은 두 필드<sup>memberDao와 memberPrinter</sup>에 해당 타입의 빈 객체를 주입한다. 
+즉 스프링 컨테이너는 AppConf2 객체를 빈으로 등록하고, @Autowired 애노테이션이 붙은 두 필드<sup>memberDao와 memberPrinter</sup>에 해당 타입의 빈 객체를 주입한다. 실제 다음 코드를 실행하면 스프링 컨테이너가 @Configuration 애노테이션을 붙인 설정 클래스를 스프링 빈으로 등록한다는 것을 확인할 수 있다.
+
+````java
+AbstractApplicationContext ctx =
+  new AnnotationConfigApplicationContext(AppConf1.class, AppConf2.class);
+
+//@Configuration 설정 클래스도 빈으로 등록함
+AppConf1 appConf1 = ctx.getBean(AppConf1.class);
+System.out.println(appConf1 != null); // true 출력
+````
+
+
+
+### @Import 애노테이션 사용
+
+두 개 이상의 설정 파일을 사용하는 또 다른 방법은 @Import 애노테이션을 사용하는 것이다. @Import 애노테이션은 함께 사용할 설정 클래스를 지정한다. 예를 들어 다음의 코드를 보자. 
+
+> *AppConfImport.java*
+
+```java
+package chapter03.config;
+
+import chapter03.spring.MemberDao;
+import chapter03.spring.MemberPrinter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+@Configuration
+@Import(AppConf2.class)
+public class AppConfImport {
+    
+    @Bean
+    public MemberDao memberDao() {
+        return new MemberDao();
+    }
+    
+    @Bean
+    public MemberPrinter memberPrinter() {
+        return new MemberPrinter();
+    }
+    
+}
+```
+
+AppConfImport 설정 클래스를 사용하면, @Import 애노테이션으로 지정한 AppConf2 설정 클래스도 함께 사용하기 때문에 스프링 컨테이너를 생성할 때 AppConf2 설정 클래스를 지정할 필요가 없다. AppConfImport 클래스만 사용하면 AppConf2 클래스의 설정도 함께 사용해서 컨테이너를 초기화한다.
+
+> *MainForSpring.java*
+
+```java
+
+  public static void main(String... args) throws IOException {
+//    ctx = new AnnotationConfigApplicationContext(AppConf1.class, AppConf2.class);
+    ctx = new AnnotationConfigApplicationContext(AppConfImport.class);
+  ...
+```
+
+
+
+@Import 애노테이션은 다음과 같이 배열을 이용해서 두 개 이상의 설정 클래스도 지정할 수 있다.
+
+```java
+@Configration
+@Import({ AppConf1.class, AppConf2.class })
+public class AppConfImport {
+}
+```
+
+
+
+## getBean() 메서드 사용
+
+지금까지 작성한 예제는 getBean() 메서드를 이용해서 사용할 빈 객체를 구했다.
+
+```java
+VersionPrinter versionPrinter = ctx.getBean("versionPrinter", VersionPrinter.class);
+```
+
+여기서 getBean() 메서드의 첫 번째 인자는 빈의 이름이고 두 번째 인자는 빈의 타입이다. 
+
+- getBean() 메서드를 호출할 때 존재하지 않는 빈 이름을 사용하면 익셉션이 발생한다.
+- 빈의 실제 타입과 getBean() 메서드에 지정한 타입이 다르면 익셉션이 발생한다.
+- 요청한 타입의 빈 객체가 없으면 익셉션이 발생한다.
+
+
+
+> getBean() 메서드는 BeanFactory 인터페이스에 정의되어 있다. getBean() 메서드를 실제 구현한 클래스는 AbstactApplicationContext이다.
+
+
+
+## 주입 대상 객체를 모두 빈 객체로 설정해야 하나?
+
+주입할 객체가 꼭 스프링 빈이어야 할 필요는 없다. 예를 들어 MemberPrinter를 빈으로 등록하지 않고 일반 객체로 생성해서 
+주입할 수 있다. 
+
+```java
+@Configuration
+public class AppCtxNoMemberPrinterBean {
+public MemberPrinter printer = new MemberPrinter(); // 빈이 아님
+
+...
+  
+  @Bean
+  public MemberListPrinter listPrinter() {
+    return new MemberListPrinter(memberDao(), printer);
+  }
+
+...
+```
+
+이렇게 해도 MemberListPrinter 객체는 정상적으로 동작한다. 객체를 스프링 빈으로 등록할 때와 등록하지 않을 때의 차이는 스프링 컨테이너가 객체를 관리하는지 여부이다. 위 코드와 같이 설정하면 MemberPrinter를 빈으로 등록하지 않으므로 스프링 컨테이너에서 MemberPrinter를 구할 수 없다.
+
+```java
+// 아래 코드는 익셉션을 발생시킨다.
+MemberPrinter printer = ctx.getBean(MemberPrinter.class);
+```
+
+스프링 컨테이너는 자동 주입, 라이프사이클 관리 등 단순 객체 생성 외에 객체 관리를 위한 다양한 기능을 제공하는데, 빈으로 등록한 객체에만 기능을 적용한다.
+
+스프링 컨테이너가 제공하는 관리 기능이 필요 없고 getBean() 메서드로 구할 필요가 없다면 빈 객체로 꼭 등록해야 하는 것은 아니다.
+
+최근에는 의존 자동 주입 기능을 프로젝트 전반에 걸쳐 사용하는 추세이므로 의존 주입 대상은 스프링 빈으로 등록하는 것이 좋다.
