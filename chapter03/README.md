@@ -1208,3 +1208,198 @@ public class AppCtxExt extends AppCtx {
 ```
 
 스프링이 런타임에 생성한 설정 클래스의 memberDao() 메서드는 매번 새로운 객체를 생성하지 않는다. 대신 한 번 생성한 객체를 보관했다가 이후에는 동일한 객체를 리턴한다. 따라서 memberRegSvc() 메서드와 changePwdSvc() 메서드에서 memberDao() 메서드를 각각 실행해도 동일한 MemberDao 객체를 사용한다.
+
+
+
+## 두 개 이상의 설정 파일 사용하기
+
+스프링을 이용해서 어플리케이션을 개발하다보면 수십, 수백 개 이상의 빈을 설정하게 된다. 설정하는 빈의 개수가 증가하면 한 개의 클래스 파일에 설정하는 것보다 영역별로 설정 파일을 나누면 편해진다.
+
+스프링은 한 개 이상의 설정 파일을 이용해서 컨테이너를 생성할 수 있다. 다음 두 파일은 지금까지 작성한 AppCtx.java의 빈 설정을 나눠서 설정한 것이다.
+
+> *AppConf1.java*
+
+```java
+package chapter03.config;
+
+import chapter03.spring.MemberDao;
+import chapter03.spring.MemberPrinter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class AppConf1 {
+  
+  @Bean
+  public MemberDao memberDao() {
+    return new MemberDao();
+  }
+  
+  @Bean
+  public MemberPrinter memberPrinter() {
+    return new MemberPrinter();
+  }
+  
+}
+```
+
+> *AppConf2.java*
+
+```java
+package chapter03.config;
+
+import chapter03.spring.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class AppConf2 {
+  
+  @Autowired
+  private MemberDao memberDao;
+  
+  @Autowired
+  private MemberPrinter memberPrinter;
+  
+  @Bean
+  public MemberRegisterService memberRegSvc() {
+    return new MemberRegisterService(memberDao);
+  }
+  
+  @Bean
+  public ChangePasswordService changePwdSvc() {
+    ChangePasswordService pwdSvc = new ChangePasswordService();
+    pwdSvc.setMemberDao(memberDao);
+    return pwdSvc;
+  }
+  
+  @Bean
+  public MemberListPrinter listPrinter() {
+    return new MemberListPrinter(memberDao, memberPrinter);
+  }
+  
+  @Bean
+  public MemberInfoPrinter infoPrinter() {
+    MemberInfoPrinter infoPrinter = new MemberInfoPrinter();
+    infoPrinter.setMemberDao(memberDao);
+    infoPrinter.setPrinter(memberPrinter);
+    return infoPrinter;
+  }
+  
+  @Bean
+  public VersionPrinter versionPrinter() {
+    VersionPrinter versionPrinter = new VersionPrinter();
+    versionPrinter.setMajorVersion(5);
+    versionPrinter.setMinorVersion(0);
+    return versionPrinter;
+  }
+  
+}
+```
+
+여기서 @Autowired 애노테이션은 스프링의 자동 주입 기능을 위한 것이다. 이 설정은 의존 주입과 관련이 있다.
+스프링 설정 클래스의 필드에 @Autowired 애노테이션을 붙이면 해당 타입의 빈을 찾아서 필드에 할당한다.
+위 설정의 경우 스프링 컨테이너는 MemberDao 타입의 빈을 memberDao 필드에 할당한다.
+
+AppConf1 클래스에서 MemberDao 타입의 빈을 설정했으므로 AppConf2 클래스의 memberDao 필드에는 AppConf1 클래스에서 설정한 빈이 할당된다.
+
+@Autowired 애노테이션을 이용해서 다른 설정 파일에 정의한 빈을 필드에 할당했다면 설정 메서드에서 이 필드를 사용해서 필요한 빈을 주입하면 된다. 
+
+```java
+@Autowired
+private MemberDao memberDao;
+
+@Autowired
+private MemberPrinter memberPrinter;
+
+
+@Bean 
+public MemberListPrinter listPrinter() {
+  return new MemberListPrinter(memberDao, memberPrinter);
+}
+```
+
+설정 클래스가 두 개 이상이어도 스프링 컨테이너를 생성하는 코드는 크게 다르지 않다.
+다음과 같이 파라미터로 설정 클래스를 추가로 전달하면 된다.
+
+```java
+ctx = new AnnotaionConfigApplicationContext(AppConf1.class, AppConf2.class);
+```
+
+MainForSpring 클래스의 코드를 변경한 뒤 실행하면 동일하게 동작하는 것을 확인할 수 있다.
+
+
+
+### @Configuration 애노테이션, 빈, @Autowired 애노테이션
+
+@Autowired 애노테이션이 출현했으니 짧게 알아보고 가자. 
+이를 포함한 자동 주입에 대한 내용은 4장에서 더 자세히 살펴본다.
+
+@Autowired 애노테이션은 스프링 빈에 의존하는 다른 빈을 **자동으로 주입**하고 싶을 때 사용한다.
+예를 들어 MemberInfoPrinter 클래스에 다음과 같이 @Autowired 애노테이션을 사용했다고 하자.
+
+> *MemberInfoPrinter.java*
+
+```java
+package chapter03.spring;
+
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class MemberInfoPrinter {
+
+  @Autowired
+  private MemberDao memberDao;
+  @Autowired
+  private MemberPrinter printer;
+
+  public void printMemberInfo(final String email) {
+    Member member = memberDao.selectByEmail(email);
+    if (member == null) {
+      System.out.println("데이터 없음\n");
+      return;
+    }
+    printer.print(member);
+    System.out.println();
+  }
+  ...세터 생략
+```
+
+두 필드에 @Autowired 애노테이션을 붙였다. 이렇게 @Autowired 애노테이션을 의존 주입 대상에 붙이면 다음 
+코드처럼 스프링 설정 클래스의 @Bean 메서드에서 의존 주입을 위한 코드를 작성하지 않아도 된다.
+
+> *AppCtx.java*
+
+```java
+  @Bean
+  public MemberInfoPrinter infoPrinter() {
+    //    infoPrinter.setMemberDao(memberDao());
+    //    infoPrinter.setPrinter(memberPrinter());
+    // 세터 메서드를 사용해서 의존 주입을 하지 않아도
+    // 스프링 컨테이너가 @Autowired를 붙인 필드에
+    // 자동으로 해당 타입의 빈 객체를 주입
+    return new MemberInfoPrinter();
+  }
+```
+
+
+
+앞서 AppConf2.java 클래스를 다시 보자. 여기서는 설정 클래스에 @Autowired 애노테이션을 사용했다.
+
+```java
+@Configuration
+public class AppConf2 {
+
+  @Autowired
+  private MemberDao memberDao;          // 스프링 오류로 인해 붉은 라인이 나온다.
+
+  @Autowired
+  private MemberPrinter memberPrinter;
+
+  ...생략
+```
+
+스프링 컨테이너는 설정 클래스에서 사용한 @Autowired에 대해서도 자동 주입을 처리한다. 실제로 스프링은 
+@Configuration 애노테이션이 붙은 설정 클래스를 내부적으로 스프링 빈으로 등록한다. 그리고 다른 빈과 마찬가지로 @Autowired가 붙은 대상에 대해 알맞은 빈을 자동으로 주입한다.
+
+즉 스프링 컨테이너는 AppConf2 객체를 빈으로 등록하고, @Autowired 애노테이션이 붙은 두 필드<sup>memberDao와 memberPrinter</sup>에 해당 타입의 빈 객체를 주입한다. 
