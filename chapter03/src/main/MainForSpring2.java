@@ -1,20 +1,24 @@
 package chapter03.main;
+
+import chapter03.config.AppConf1;
+import chapter03.config.AppConf2;
+import chapter03.config.AppConfImport;
+import chapter03.config.AppCtx;
+import chapter03.spring.*;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import chapter03.config.AppCtx;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-
-import chapter03.spring.*;
-
-public class MainForSpring {
+public class MainForSpring2 {
 
   private static ApplicationContext ctx = null;
 
   public static void main(String... args) throws IOException {
-    ctx = new AnnotationConfigApplicationContext(AppCtx.class);
+//    ctx = new AnnotationConfigApplicationContext(AppConf1.class, AppConf2.class);
+    ctx = new AnnotationConfigApplicationContext(AppConfImport.class);
 
     BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
     while (true) {
@@ -40,7 +44,6 @@ public class MainForSpring {
         processVersionCommand();
         continue;
       }
-
       printHelp();
     }
   }
