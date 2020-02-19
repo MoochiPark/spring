@@ -25,6 +25,7 @@ public class MemberInfoPrinter {
   }
 
   @Autowired
+  @Qualifier("printer")
   public void setPrinter(final MemberPrinter printer) {
     this.printer = printer;
   }

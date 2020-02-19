@@ -21,13 +21,12 @@ public class MemberListPrinter {
   }
 
   @Autowired
-  public void setMemberDao(MemberDao memberDao) {
+  public void setMemberDao(final MemberDao memberDao) {
     this.memberDao = memberDao;
   }
 
   @Autowired
-  @Qualifier("printer")
-  public void setPrinter(MemberPrinter printer) {
+  public void setPrinter(final MemberSummaryPrinter printer) {
     this.printer = printer;
   }
 
