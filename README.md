@@ -26,7 +26,12 @@
 - ### [Chapter 05]( https://github.com/MoochiPark/spring/tree/master/chapter05 )
 
   #### 컴포넌트 스캔
+  
+- ### [Chapter 06]( https://github.com/MoochiPark/spring/tree/master/chapter06 )
 
+  #### 빈 라이프사이클과 
+  
+  
 ## *Made by*
 
  - *Daewon Park* *[<daewon@wisoft.io>]*
