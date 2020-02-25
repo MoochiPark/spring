@@ -329,5 +329,4 @@ public class AppCtx {
 
 이 경우 스캔을 통해 등록한 "memberDao" 빈과 수동 등록한 "memberDao2" 빈이 모두 존재한다. MemberDao 타입의 빈이 두 개가 생성되므로 자동 주입하는 코드는 @Qualifier 애노테이션을 사용해서 알맞은 빈을 선택해야 한다.
 
-dㅇdㅇdㅇdㅇdㅇdㅇdㅇdㅇdㅇdㅇㅇㅇㄹㅇㅇddㅇㅇㅇㅇㅇㅇㅇaㅁㅁㅁaㅁaㅁaㅁaㅁa
 
