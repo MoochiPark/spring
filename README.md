@@ -29,7 +29,7 @@
   
 - ### [Chapter 06]( https://github.com/MoochiPark/spring/tree/master/chapter06 )
 
-  #### 빈 라이프사이클과 
+  #### 빈 라이프사이클과 범위
   
   
 ## *Made by*
