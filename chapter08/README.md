@@ -55,9 +55,9 @@ List<Member> results = jdbcTemplate.query(
 return results.isEmpty() ? null : results.get(0);
 ```
 
-스프링이 제공하는 또 다른 장점은 트랜잭션 관리가 쉽다는 것이다. JDBC API로 트랜잭션을 처리하려면 다음과 같이 Connection의 setAutoCommit(false)을 이용해서 자동 커밋을 비활성화 하고 commit()과 rollback() 메서드를 이용해서
+스프링이 제공하는 또 다른 장점은 트랜잭션 관리가 쉽다는 것이다. JDBC API로 트랜잭션을 처리하려면 다음과 같이 Connection의 setAutoCommit(false)을 이용해서 자동 커밋을 비활성화 하고 commit()과 rollback() 메서드를 이용해서
 트랜잭션을 커밋하거나 롤백해야 한다. 
-하지만 스프링을 사용하면 트랜잭션을 적용하고 싶은 메서드에 @Transactional 애노테이션을 붙이기만 하면 된다.
+하지만 스프링을 사용하면 트랜잭션을 적용하고 싶은 메서드에 @Transactional 애노테이션을 붙이기만 하면 된다.
 
 ```java
 @Transactional
