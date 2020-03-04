@@ -333,7 +333,7 @@ import java.util.Arrays;
 @Aspect
 public class ExeTimeAspect {
 
-  @Pointcut("execution(public * io.wisoft.daewon ..*(..))")
+  @Pointcut("execution(public * io.wisoft.daewon.calculator ..*(..))")
   private void publicTarget() {
   }
   
@@ -407,7 +407,7 @@ public class AppCtx {
 ExeTimeAspect 클래스에 설정한 코드를 다시보면,
 
 ```java
-  @Pointcut("execution(public * io.wisoft.daewon ..*(..))")
+  @Pointcut("execution(public * io.wisoft.daewon.calculator ..*(..))")
   private void publicTarget() {
   }
 
@@ -428,5 +428,121 @@ ExeTimeAspect 클래스에 설정한 코드를 다시보면,
 >
 > @Enable 류의 애노테이션은 복잡한 스프링 설정을 대신하기 때문에 개발자가 쉽게 스프링을 사용할 수 있도록 해준다.
 
+calculator 빈에 공통 기능이 적용되는지 확인해보자.
 
+> *MainAspect.java*
+
+```java
+public class MainAspect {
+
+  public static void main(String... args) {
+    AnnotationConfigApplicationContext ctx =
+        new AnnotationConfigApplicationContext(AppCtx.class);
+
+    Calculator calculator = ctx.getBean("calculator", Calculator.class);
+    long fiveFact = calculator.factorial(5);
+    System.out.println("calculator.factorial(5) = " + fiveFact);
+    System.out.println(calculator.getClass().getName());
+
+    ctx.close();
+  }
+
+}
+```
+
+
+
+**실행 결과**
+
+```java
+RecCalculator.factorial([5]) 실행 시간 : 25290 ns
+calculator.factorial(5) = 120
+com.sun.proxy.$Proxy21
+```
+
+- 1행: ExeTimeAspect 클래스의 measure() 메서드가 출력한 것이다.
+- 3행: `System.out.println(calculator.getClass().getName());`에서 출력한 코드이다. 결과를 보면 Calculator의 타입이 RecCalculator 클래스가 아니고 $Proxy21이다. 이 타입은 스프링이 생성한 프록시 타입이다.
+
+실제 calculator.factorial(5) 코드를 호출할 때 실행되는 과정은 다음과 같다.
+
+![image](https://user-images.githubusercontent.com/43429667/75769131-f379c280-5d88-11ea-984e-f0a4cff88ae5.png)
+
+AOP를 적용하지 않았다면 리턴한 객체는 RecCalculator 였을 것이다. 실제로 확인 해보자.
+
+```java
+calculator.factorial(5) = 120
+io.wisoft.daewon.calculator.RecCalculator
+```
+
+실행 결과를 보면 타입이 RecCalculator 클래스 임을 알 수 있다.
+
+
+
+### ProceedingJoinPoint의 메서드
+
+Around Advice에서 사용할 공통 기능 메서드는 대부분 파라미터로 전달받은 ProceedingJoinPoint의 proceed() 메서드만 호출하면 된다. 예를 들어 다음 처럼  ExeTimeAspect 클래스도 다음처럼 proceed() 메서드를 호출했다.
+
+```java
+public class ExeTimeAspect {
+
+  public Object measure(final ProceedingJoinPoint joinPoint) throws Throwable {
+    long start = System.nanoTime();
+    try {
+      return joinPoint.proceed();
+    } finally {
+      ...
+    }
+  }
+```
+
+물론 호출되는 대상 객체에 대한 정보, 실행되는 메서드에 대한 정보, 메서드를 호출할 때 전달된 인자에 대한 정보가 필요할 때가 있다. 이들 정보에 접근할 수 있도록 ProceedingJoinPoint 인터페이스는 다음 메서드를 제공한다. 
+
+- **Signature getSignature()**: 호출되는 메서드에 대한 정보를 구한다.
+- **Object getTarget()**: 대상 객체를 구한다.
+- **Object[] getArgs()**: 파라미터 목록을 구한다.
+
+
+
+org.aspectj.lang.Signature 인터페이스는 다음 메서드를 제공한다. 각 메서드는 호출되는 메서드의 정보를 제공한다.
+
+- **String getName()**: 호출되는 메서드의 이름을 구한다.
+- **String toLongString()**: 호출되는 메서드를 완전하게 표현한 문장을 구한다(메서드의 리턴 타입, 파라미터 타입이 모두 
+  표시된다).
+- **String toShortString()**: 호출되는 메서드를 축약해서 표현한 문장을 구한다(기본 구현은 메서드의 이름만을 구한다).
+
+
+
+## 프록시 생성 방식
+
+MainAspect 클래스의 코드를 다음처럼 변경해보자.
+
+```java
+// 수정 전
+Calculator calculator = ctx.getBean("calculator", Calculator.class);
+
+//수정 후
+RecCalculator calculator = ctx.getBean("calculator", RecCalculator.class);
+```
+
+getBean() 메서드에 Calculator 타입 대신에 RecCalculator 타입을 사용하도록 수정했다.
+자바 설정 파일을 열어보면 "calculator" 빈을 생성할 때 사용한 타입이 RecCalculator 클래스이므로 문제가 없어 보인다.
+
+```java
+  @Bean
+  public Calculator calculator() {
+    return new RecCalculator();
+  }
+```
+
+하지만 코드를 실행하게 되면 예상과 달리 익셉션이 발생한다.
+
+```java
+Exception in thread "main" org.springframework.beans.factory.BeanNotOfRequiredTypeException: Bean named 'calculator' is expected to be of type 'io.wisoft.daewon.calculator.RecCalculator' 
+but was actually of type 'com.sun.proxy.$Proxy21'
+```
+
+메시지를 보면 getBean() 메서드에 사용한 타입이 RecCaclulator인데 반해 실제 타입은 $Proxy21이라는 메시지가 나온다.
+
+$Proxy21은 스프링이 런타임에 생성한 프록시 객체의 클래스 이름인데, 이 클래스는 RecCalculator 클래스가 상속받은
+Calculator 인터페이스를 상속받게 된다.
 
