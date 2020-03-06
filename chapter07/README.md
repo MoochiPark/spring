@@ -98,7 +98,7 @@ public class ImpeCalculator implements Calculator {
 }
 ```
 
-RecCalculator 클래스는 재귀호출이므로 약간 복잡해진다. 또 시간이 3번 출력되는 문제가 있다.
+RecCalculator 클래스는 재귀호출이므로 다음 코드처럼 약간 복잡해진다. 또 시간이 3번 출력되는 문제가 있다.
 
 > *RecCalculator.java*
 
@@ -213,7 +213,7 @@ RecCalculator.factorial(20) 실행 시간 = 3254
 위 결과에서 다음을 알 수 있다.
 
 - 기존 코드를 변경하지 않고 실행 시간을 출력할 수 있다. ImpeCalculator 클래스나 RecCalculator 클래스의 코드 
-  변경 없이 이 두 클래스의 factorial() 메œ서드 실행 시간을 출력할 수 있게 되었다.
+  변경 없이 이 두 클래스의 factorial() 메서드 실행 시간을 출력할 수 있게 되었다.
 - 실행 시간을 구하는 코드의 중복을 제거했다. 나노초 대신 밀리초를 사용해서 실행 시간을 구하고 싶다면 ExeTimeCalculator 클래스만 변경하면 된다.
 
 이것이 가능한 이유는 ExeTimeCalculator 클래스를 다음과 같이 구현했기 때문이다.
@@ -274,7 +274,7 @@ AOP에서 공통 기능을 Aspect라 하는데 Aspect 외에 알아두어야 할
 
 | 용어      | 의미                                                         |
 | --------- | ------------------------------------------------------------ |
-| Aspect    | 언제 공통 관심 기능을 핵심 로직에 적용할 지를 정의하고 있다. <br />예를 들어 '메서드를 호출하기 전'(언제)에 '트랜잭션 시작'(공통 기능) 기능을 적용한다는 것을 정의한다. |
+| Advice    | 언제 공통 관심 기능을 핵심 로직에 적용할 지를 정의하고 있다. <br />예를 들어 '메서드를 호출하기 전'(언제)에 '트랜잭션 시작'(공통 기능) 기능을 적용한다는 것을 정의한다. |
 | Joinpoint | Advice를 적용 가능한 지점을 의미한다. 메서드 호출, 필드 값 변경 등이 Joinpoint에 해당한다. <br />스프링은 프록시를 이용해서 AOP를 구현하기 때문에 메서드 호출에 대한 Joinpoint만 지원한다. |
 | Pointcut  | Joinpoint의 부분 집합으로서 실제 Advice가 적용되는  Joinpoint를 나타낸다.<br />스프링에서는 정규 표현식이나 AspectJ의 문법을 이용하여 Pointcut을 정의할 수 있다. |
 | Weaving   | Advice를 핵심 로직 코드에 적용하는 것을 weaving이라고 한다.  |
@@ -286,7 +286,7 @@ AOP에서 공통 기능을 Aspect라 하는데 Aspect 외에 알아두어야 할
 
 스프링은 프록시를 이용해서 메서드 호출 시점에 Aspect를 적용하기 때문에 구현 가능한 Advice의 종류는 다음과 같다.
 
-> *스프링에서 구현 가능한 Advice  종류*
+> *스프링에서 구현 가능한 Advice 종류*
 
 | 종류                   | 설명                                                         |
 | ---------------------- | ------------------------------------------------------------ |
@@ -304,7 +304,7 @@ AOP에서 공통 기능을 Aspect라 하는데 Aspect 외에 알아두어야 할
 
 스프링 AOP를 이용해서 공통 기능을 구현하고 적용하는 방법은 단순하다. 다음과 같은 절차만 따르면 된다.
 
-- Aspect로 사용할 클래스에 @Aspect 애노테이션을 붙인다.
+- Aspect<sup>공통 기능</sup>로 사용할 클래스에 @Aspect 애노테이션을 붙인다.
 - @Pointcut 애노테이션으로 공통 기능을 적용할 Pointcut을 정의한다.
 - 공통 기능을 구현한 메서드에 @Around 애노테이션을 적용한다.
 
@@ -357,7 +357,7 @@ public class ExeTimeAspect {
 
 각 애노테이션과 메서드에 대해 알아보자. 먼저 @Aspect 애노테이션을 적용한 클래스는  Advice와 Pointcut을 함께 제공한다.
 
-@Pointcut은 공통 기능을 적용할 대상을 설정한다. @Pointcut 애노테이션의 값으로 사용할  수 있는 execution 명시자에 대해서는 뒤에서 배울 것이다. 일단 지금은 **io.wisoft.daewon 패키지와 그 하위 패키지에 위치한 타입의 pulbic 메서드를 Pointcut으로 설정**한다는 정도만 이해하고 넘어가자.
+@Pointcut은 공통 기능을 적용할 대상을 설정한다. @Pointcut 애노테이션의 값으로 사용할  수 있는 execution 명시자에 대해서는 뒤에서 배울 것이다. 일단 지금은 **io.wisoft.daewon.calculator 패키지와 그 하위 패키지에 위치한 타입의 pulbic 메서드를 Pointcut으로 설정**한다는 정도만 이해하고 넘어가자.
 
 @Around 애노테이션은  Around Advice를 설정한다. **@Around 애노테이션의 값이 "publicTarget()"인데 이는 publicTarget() 메서드에 정의한 Pointcut에 공통 기능을 적용**한다는 것을 의미한다. publicTarget() 메서드는 패키지와 그 하위 패키지에 위치한 public 메서드를 Pointcut으로 설정하고 있으므로, **패키지나 그 하위 패키지에 속한 빈 객체의 public 메서드에 @Around가 붙은 measure 메서드를 적용**한다.
 
@@ -417,14 +417,14 @@ ExeTimeAspect 클래스에 설정한 코드를 다시보면,
   }
 ```
 
-`@Around` 애노테이션은 Pointcut으로 `publicTarget()` 메서드를 설정했다. `publicTarget()` 메서드의 `@Pointcut`은 `io.wisoft.daewon` 패키지나 그 하위 패키지에 속한 빈 객체의 public 메서드를 설정한다. 
-`AppCtx.java`에서 설정한 `Calculator` 타입이 `io.wisoft.daewon` 패키지에 속하므로 `calculator` 빈에 `ExeTimeAspect` 클래스에 정의한 공통 기능인 `measure()`를 적용한다.
+`@Around` 애노테이션은 Pointcut으로 `publicTarget()` 메서드를 설정했다. `publicTarget()` 메서드의 `@Pointcut`은 `io.wisoft.daewon.calculator` 패키지나 그 하위 패키지에 속한 빈 객체의 public 메서드를 설정한다. 
+`AppCtx.java`에서 설정한 `Calculator` 타입이 `io.wisoft.daewon.calculator` 패키지에 속하므로 `calculator` 빈에 `ExeTimeAspect` 클래스에 정의한 공통 기능인 `measure()`를 적용한다.
 
 > ***@Enable 류 애노테이션***
 >
 > 스프링은 @EnableAspectJAutoProxy와 같이 이름이 Enable로 시작하는 다양한 애노테이션을 제공한다.
 > @Enable로 시작하는 애노테이션은 관련 기능을 적용하는데 필요한 다양한 스프링 설정을 대신 처리한다. 예를 들어
-> @EnableAspectJAutoProxy 애노테이션은 프록시 생성과 관련된 AnnotationAwareAspectJAutoProxyCreator 객체를 빈으로 등록한다. 웹 개발과 rhksfusehls @EnableWebMvc 애노테이션 역시 웹 개발과 관련된 다양한 설정을 등록한다.
+> @EnableAspectJAutoProxy 애노테이션은 프록시 생성과 관련된 AnnotationAwareAspectJAutoProxyCreator 객체를 빈으로 등록한다. 웹 개발과 관련된 @EnableWebMvc 애노테이션 역시 웹 개발과 관련된 다양한 설정을 등록한다.
 >
 > @Enable 류의 애노테이션은 복잡한 스프링 설정을 대신하기 때문에 개발자가 쉽게 스프링을 사용할 수 있도록 해준다.
 
