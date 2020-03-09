@@ -546,3 +546,322 @@ but was actually of type 'com.sun.proxy.$Proxy21'
 $Proxy21은 스프링이 런타임에 생성한 프록시 객체의 클래스 이름인데, 이 클래스는 RecCalculator 클래스가 상속받은
 Calculator 인터페이스를 상속받게 된다.
 
+> *빈 객체가 인터페이스의 구현체이면 인터페이스를 이용해서 프록시를 생성*
+
+![image](https://user-images.githubusercontent.com/43429667/76160296-52b24b00-616c-11ea-9a94-e36331cd30c0.png)
+
+스프링은 AOP를 위한 프록시 객체를 생성할 때 실제 생성할 빈 객체가 인터페이스를 구현하면 인터페이스를 이용해서
+프록시를 생성한다. 앞서 예에서도 RecCalculator 클래스가 Calculator 인터페이스를 구현하므로 Calculator를 상속받은
+$Proxy21 프록시 객체를 생성했다. 따라서 빈의 실제 타입이 RecCalculator라고 하더라도 "calculator" 이름에 해당하는
+빈 객체의 타입은 Calculator 인터페이스를 구현한 \$Proxy21 프록시 타입이 된다.
+
+
+
+빈 객체가 인터페이스를 상속할 때 인터페이스가 아닌 클래스를 이용해서 프록시를 생성하고 싶다면 다음처럼 설정하자.
+
+```java
+@Configuration
+@EnableAspectJAutoProxy(proxyTargetClass = true)
+public class AppCtx {
+```
+
+`@EnableAspectJAutoProxy(proxyTargetClass = true)`로 지정하면 인터페이스가 아닌 자바 클래스를 상속받아 
+프록시를 생성한다.
+
+```java
+@Configuration
+@EnableAspectJAutoProxy(proxyTargetClass = true)
+public class AppCtx {
+  ...
+}
+
+// "calculator" 프록시의 실제 타입은 RecCalculator를 상속받았으므로 RecCalculator로 타입 변환 가능
+RecCalculator cal = ctx.getBean("calculator", RecCalculator.class);
+```
+
+
+
+### execution 명시자 표현식
+
+Aspect를 적용할 위치를 지정할 때 사용한 Pointcut 설정을 보면 execution 명시자를 사용했다.
+
+```java
+  @Pointcut("execution(public * io.wisoft.daewon.calculator ..*(..))")
+  private void publicTarget() {
+  }
+```
+
+execution 명시자는  Advice를 적용할 메서드를 지정할 때 사용한다. 기본 형식은 다음과 같다.
+
+```java
+execution(수식어패턴? 리턴타입패턴 클래스이름패턴?메서드이름패턴(파라미터패턴))
+```
+
+'수식어패턴'은 생략 가능하며 public, protected 등이 온다. 스프링 AOP는 public 메서드에만 적용할 수 있기 때문에 
+사실상 public 만 의미가 있다.
+
+'리턴타입패턴'은 리턴 타입을 명시한다. '클래스이름패턴'과 '메서드이름패턴'은 클래스 이름 및 메서드 이름을 패턴으로 명시한다.
+'파라미터패턴'은 매칭될 파라미터에 대해서 명시한다.
+
+각 패턴은 '*'을 이용하여 모든 값을 표현할 수 있다. 또한 '..'을 이용하여 0개 이상이라는 의미를 표현할 수 있다.
+
+다음은 몇 가지 예이다.
+
+| 예                                | 설명                                                         |
+| --------------------------------- | ------------------------------------------------------------ |
+| execution(public void set*(..))   | 리턴 타입이 void이고, 메서드 이름이 set으로 시작하고, 파라미터가 0개 이상인 메서드 호출. |
+| execution(* chapter07 .\*.\*())   | chapter07 패키지의 타입에 속한 파라미터가 없는 모든 메서드 호출 |
+| execution(* chapter07 .\*.\*(..)) | chapter07 패키지 및 하위 패키지에 이는, 파라미터가 0개 이상인 메서드 호출, 패키지 부분에 '..'을 사용하여 해당 패키지 또는 하위 패키지를 표현했다. |
+
+
+
+### Advice 적용 순서
+
+한 Pointcut에 여러 Advice를 적용할 수도 있다.
+
+> *CacheAspect.java*
+
+```java
+@Aspect
+public class CacheAspect {
+
+  private Map<Long, Object> cache = new HashMap<>();
+
+  @Pointcut("execution(public * io.wisoft.daewon.calculator ..*(long))")
+  public void cacheTarget() {
+  }
+
+  @Around("cacheTarget()")
+  public Object execute(ProceedingJoinPoint joinPoint) throws Throwable {
+    Long num = (Long) joinPoint.getArgs()[0];
+    if (cache.containsKey(num)) {
+      System.out.printf("CacheAspect: Cache에서 구함[%d]\n", num);
+      return cache.get(num);
+    }
+    
+    Object result = joinPoint.proceed();
+    cache.put(num, result);
+    System.out.printf("CacheAspect: Cache에 추가[%d]\n", num);
+    return result;
+  }
+
+}
+```
+
+CacheAspect는 간단하게 캐시를 구현한 공통 기능이다. 
+
+- 첫 번째 인자를 Long 타입으로 구한다.
+- 구한 키값이 cache에 존재하면 키에 해당하는 값을 구해서 리턴한다.
+- 구한 키값이 존재하지 않으면 프록시 대상 객체를 실행한다.
+- 프록시 대상 객체를 실행한 결과를 cache에 추가한다.
+- 프록시 대상 객체의 실행 결과를 리턴한다.
+
+
+
+@Around 값으로 cacheTarget() 메서드를 지정했다. @Pointcut 설정은 첫 번째 인자가 long인 메서드를 대상으로 한다.
+따라서 execute() 앞서 작성한 Calculator의 factorial(long) 메서드에 적용된다.
+
+새로운  Aspect를 구현했으므로 스프링 설정 클래스에 두 개의 Aspect를 추가할 수 있다. ExeTimeAspect는 앞서 구현한
+시간 측정 Aspect이다. 두 Aspect에서 설정한 Pointcut은 모두 Calculator 타입의 factorial() 메서드에 적용된다.
+
+> *AppCtxWithCache.java*
+
+```java
+@Configuration
+public class AppCtxWithCache {
+
+  @Bean
+  public CacheAspect cacheAspect() {
+    return new CacheAspect();
+  }
+
+  @Bean
+  public ExeTimeAspect exeTimeAspect() {
+    return new ExeTimeAspect();
+  }
+  
+  @Bean
+  public Calculator calculator() {
+    return new RecCalculator();
+  }
+
+}
+```
+
+이 설정 클래스를 사용하는 예제 코드를 작성하자.
+
+> *MainAspectWithCache.java*
+
+```java
+public class MainAspectWithCache {
+
+  public static void main(String... args) {
+    AnnotationConfigApplicationContext ctx =
+        new AnnotationConfigApplicationContext(AppCtxWithCache.class);
+
+    Calculator cal = ctx.getBean("calculator", Calculator.class);
+    cal.factorial(7);
+    cal.factorial(7);
+    cal.factorial(5);
+    cal.factorial(5);
+
+    ctx.close();
+  }
+
+}
+```
+
+**실행 결과**
+
+```java
+RecCalculator.factorial([7]) 실행 시간 : 44450 ns
+CacheAspect: Cache에 추가[7]
+CacheAspect: Cache에서 구함[7]
+RecCalculator.factorial([5]) 실행 시간 : 6868 ns
+CacheAspect: Cache에 추가[5]
+CacheAspect: Cache에서 구함[5]
+```
+
+"RecCalculator.foactorial(숫자) 실행 시간" 메시지는 ExeTimeAspect가 출력한다. 그 외의 메시지는 CacheAspect가 출력한다.
+
+결과를 보면 첫 번째 factorial(7)을 실행할 때와 두 번째 실행할 때 콘솔에 출력되는 내용이 다르다. 첫 번째 실행 결과는 ExeTimeAspect와 CacheAspect가 모두 적용되었고 두 번째 실행 결과는 CacheAspect만 적용되었다. 
+
+이렇게 다른 이유는 Advice가 `CacheAspect 프록시` -> `ExeTimeAspect 프록시` -> `실제 대상 객체` 순으로 적용해서 그렇다.
+
+`Calculator cal = ctx.getBean("calculator", Calculator.class);`에서 구한 calculator 빈은 실제로는 CacheAspect 프록시 객체이다. 근데 CacheAspect 프록시 객체의 대상 객체는 ExeTimeAspect의 프록시 객체이다. 
+그리고 ExeTimeAspect 프록시의 대상 객체가 실제 대상 객체이다.
+
+```java
+Calculator cal = ctx.getBean("calculator", Calculator.class);
+cal.factorial(7); // CacheAspect 실행 -> ExeTimeAspect 실행 -> 대상 객체 실행
+```
+
+CacheAspect는  cache 맵에 데이터가 존재하지 않으면 joinPoint.proceed()를 실행해서 대상을 실행한다.
+
+1. 그 대상이 ExeTimeAspect이므로 ExeTimeAspect의 measure() 메서드가 실행된다.
+
+2. ExeTimeAspect는 실제 대상 객체를 실행하고
+
+3. 콘솔에 실행 시간을 출력한다.
+4. ExeTimeAspect 실행이 끝나면 CacheAspect는  cache 맵에 데이터를 넣고 콘솔에 추가 메시지를 출력한다.
+
+
+
+그래서 factorial() 메서드를 처음 실행할 때에는 ExeTimeAspect가 출력하는 메시지가 먼저 출력되고
+CacheAspect가 출력하는 메시지가 뒤에 출력되는 것이다.
+
+factorial()을 두 번째 호출하면 cache.containsKey(num)이 true를 리턴하므로 cache 맵에 담긴 값을 리턴하고 끝난다.
+
+어떤 Aspect가 먼저 적용될지는 스프링 프레임워크나 자바 버전에 따라 달라질 수 있기 때문에 적용 순서가 중요하다면 직접 순서를 지정해야 한다.  
+이럴 때 사용하는 것이 @Order 애노테이션이다.  @Aspect 애노테이션과 함께 @Order 애노테이션을 클래스에 붙이면
+@Order 애노테이션에 지정한 값에 따라 적용 순서를 결정한다.
+
+@Order 애노테이션의 값이 작으면 먼저 적용하고 크면 나중에 적용한다.
+
+> *ExeTimeAspect.java*
+
+```java
+@Aspect
+@Order(1)
+public class ExeTimeAspect {
+...
+```
+
+> *CacheAspect.java*
+
+```java
+@Aspect
+@Order(2)
+public class CacheAspect {
+...
+```
+
+**실행 결과**
+
+```java
+CacheAspect: Cache에 추가[7]
+RecCalculator.factorial([7]) 실행 시간 : 15060909 ns
+CacheAspect: Cache에서 구함[7]
+RecCalculator.factorial([7]) 실행 시간 : 188101 ns
+CacheAspect: Cache에 추가[5]
+RecCalculator.factorial([5]) 실행 시간 : 158268 ns
+CacheAspect: Cache에서 구함[5]
+RecCalculator.factorial([5]) 실행 시간 : 145354 ns
+```
+
+`ExeTimeAspect 프록시` -> `CacheAspect 프록시` -> `실제 대상 객체` 순으로 실행된 것을 알 수 있다.
+
+
+
+### @Around의 Pointcut 설정과 @Pointcut 재사용
+
+@Pointcut 애노테이션이 아닌 @Around  애노테이션에 execution 명시자를 직접 지정할 수도 있다.
+
+> *사용 예*
+
+```java
+@Aspect
+public class CacheAspect {
+
+  @Around("execution(public * io.wisoft.daewon.calculator ..*(..))")
+  public Object execute(final ProceedingJoinPoint joinPoint) throws Throwable {
+  ...  
+```
+
+만약 같은 Pointcut을 여러 Advice가 함께 사용한다면 공통 Pointcut 을 재사용할 수도 있다.
+
+> *publicTarget()을 public으로 변경*
+
+```java
+@Aspect
+public class ExeTimeAspect {
+
+  @Pointcut("execution(public * io.wisoft.daewon.calculator ..*(..))")
+  public void publicTarget() {
+  }
+  ...
+```
+
+> *CacheAspect.java*
+
+```java
+@Aspect
+public class CacheAspect {
+
+//  @Pointcut("execution(public * io.wisoft.daewon.calculator ..*(long))")
+//  public void cacheTarget() {
+//  }
+
+  @Around("io.wisoft.daewon.aspect.ExeTimeAspect.publicTarget()")
+  public Object execute(final ProceedingJoinPoint joinPoint) throws Throwable {
+
+```
+
+CacheAspect와 ExeTimeAspect는 같은 패키지에 위치하므로 패키지 이름 없이 간단한 클래스 이름으로 설정할 수 있다.
+
+> *CacheAspect.java*
+
+```java
+@Aspect
+public class CacheAspect {
+
+  @Around("ExeTimeAspect.publicTarget()")
+  public Object execute(final ProceedingJoinPoint joinPoint) throws Throwable {
+  ...
+```
+
+이처럼 여러 Aspect에서 공통으로 사용하는 Pointcut이 있다면 별도 클래스에 Pointcut을 정의하고, 각 Aspect 클래스에서 
+해당 Pointcut을 사용하도록 구성하면 Pointcut 관리가 편해진다. 
+
+> *CommonPointcut.java (공통 Pointcut 정의)*
+
+```java
+public class CommonPointcut {
+  
+  @Pointcut("execution(public * io.wisoft.daewon.calculator ..*(..))")
+  public void commonTarget() {}
+  
+}
+```
+
+@Pointcut을 설정한 CommonPointcut은 빈으로 등록할 필요가 없다. @Around 애노테이션에서 해당 클래스에 접근 가능하면 해당 Pointcut을 사용할 수 있다.
