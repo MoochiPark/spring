@@ -14,7 +14,7 @@
 이 장에서 만들 예제는 매우 간단하지만 스프링 MVC를 실행하는데 필요한 최소 설정을 해야한다.
 
 - 스프링 MVC의 주요 설정<sup>HandlerMapping, ViewPesolver 등</sup>
-- 스프링 <sub>ㅗㅗ</sub><sup>ㅎㅎ</sup>
+- 스프링
 - 스프링의 DispatcherServlet 설정
 
 
