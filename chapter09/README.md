@@ -13,8 +13,7 @@
 
 이 장에서 만들 예제는 매우 간단하지만 스프링 MVC를 실행하는데 필요한 최소 설정을 해야한다.
 
-- 스프링 MVC의 주요 설정<sup>HandlerMapping, ViewPesolver 등</sup>
-- 스프링 <sub>ㅗㅗ</sub><sup>ㅎㅎ</sup>
+- 스프링 MVC의 주요 설정<sup>HandlerMapping, ViewResolver 등</sup>
 - 스프링의 DispatcherServlet 설정
 
 
@@ -23,14 +22,14 @@
 
 <script src="https://gist.github.com/26186057661b0095fcc6f3a41f0bf9ea.js"></script>
 
-- **2행**: @EnableWebMvc 애노테이션은 스프링  MVC 설정을 활성화한다. 스프링 MVC를 사용하는데 필요한 다양한 설정을 생성한다.
-- **5~9행**: DispatcherServlet의 매핑 경로를 '/'로 주었을 때, JSP/HTML/CSS 등을 올바르게 처리하기 위한 설정을 추가한다.
-- **11~14행**: JSP를 이용해서 컨트롤러의 실행 결과를 보여주기 위한 설정을 추가한다.
+- **10행**: @EnableWebMvc 애노테이션은 스프링  MVC 설정을 활성화한다. 스프링 MVC를 사용하는데 필요한 다양한 설정을 생성한다.
+- **13~17행**: DispatcherServlet의 매핑 경로를 '/'로 주었을 때, JSP/HTML/CSS 등을 올바르게 처리하기 위한 설정을 추가한다.
+- **19~22행**: JSP를 이용해서 컨트롤러의 실행 결과를 보여주기 위한 설정을 추가한다.
 
 실제로 스프링 2.5나 3 버전에서 스프링 MVC를 사용하려면 상황에 맞는 설정을 일일이 구성해야 했는데, 이런 복잡한 설정을
 대신 해 주는 것이 바로 @EnableWebMvc 애노테이션이다.
 
-@EnableWebMvc 애노테이션을 사용하면 내부적으로 다양한 빈 설정을 추가해준다. 이 것을 직접하려면 수십 줄에 가까운 코드를 작성해야 할 것이다.
+@EnableWebMvc 애노테이션을 사용하면 내부적으로 다양한 빈 설정을 추가해준다. 이 것을 직접하려면 수십 줄에 가까운 코드를 작성해야 할 것이다.			
 
 @EnableWebMvc 애노테이션이 스프링 MVC를 사용하는데 필요한 기본적인 구성을 설정해준다면, WebMvcConfigurer 인터페이스는 스프링 MVC의 개별 설정을 조정할 때 사용한다. 
 
