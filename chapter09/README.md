@@ -16,7 +16,7 @@
 - 스프링 MVC의 주요 설정<sup>HandlerMapping, ViewResolver 등</sup>
   =======
 
-- 스프링 MVC의 주요 설정<sup>HandlerMapping, ViewPesolver 등</sup>
+- 스프링 MVC의 주요 설정<sup>HandlerMapping, ViewResolver 등</sup>
 
 - 스프링의 DispatcherServlet 설정
 
@@ -43,7 +43,7 @@
 
 ### web.xml 파일에 DispatcherServlet 설정
 
-스프링 MVC가 웹 요청을 처리하려면 DispatcherServlet을 통해서 웹 요청을 받아야 한다. 이를 위해 web.xml 파일에 DispatcherServlet을 등록한다. src/main/webapp/WEB-INF 폴더에 작성하면 된다.
+**스프링 MVC가 웹 요청을 처리하려면 DispatcherServlet을 통해서 웹 요청을 받아야 한다.** 이를 위해 web.xml 파일에 DispatcherServlet을 등록한다. src/main/webapp/WEB-INF 폴더에 작성하면 된다.
 
 <script src="https://gist.github.com/MoochiPark/2e53bd0bac233bf64d13435db5ea91b2.js"></script>
 
@@ -138,8 +138,8 @@ hello.jsp 코드를 보면 다음처럼 JSP EL<sup>Expression Language</sup>을 
 `인사말: ${greeting}`
 
 이 표현식의 "greeting"은 컨트롤러 구현에서 Model에 추가한 속성의 이름인 "greeting"과 동일하다. 이렇게 컨트롤러에서 
-설정한 속성을 뷰 JSP 코드에서 접근할 수 있는 이유는 스프링 MVC 프레임워크가 모델에 추가한 속성을 JSP에서 접근할 수  
-있게 HttpServletRequest에 옮겨주기 때문이다.
+설정한 속성을 뷰 JSP 코드에서 접근할 수 있는 이유는 **스프링 MVC 프레임워크가 모델에 추가한 속성을 JSP에서 접근할 수  
+있게 HttpServletRequest에 옮겨주기 때문**이다.
 
 ![image](https://user-images.githubusercontent.com/43429667/76305931-60510780-6309-11ea-9408-ae6c28eab107.png)
 
