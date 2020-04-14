@@ -149,3 +149,106 @@ public class RegistController {
 
 > *step2.jsp*
 
+<script src="https://gist.github.com/a3c074662c1cdfa19b800127416320ce.js"></script>
+
+
+
+## 5. 리다이렉트 처리
+
+RegisterController.handleStep2() 메서드는 POST 방식만을 처리하기 때문에 GET 요청은 처리하지 않으므로 405 상태 
+코드를 응답한다.
+
+![image-20200414134127749](/Users/daewon/Library/Application Support/typora-user-images/image-20200414134127749.png)
+
+잘못된 요청이 왔을 때 에러 화면보단 알맞은 경로로 리다이렉트하는 것이 더 좋을 때가 있다.
+
+컨트롤러에서 특정 페이지로 리다이렉트하는 방법은 간단한데, `redirect:경로`를 뷰 이름으로 리턴하면 된다.
+
+<script src="https://gist.github.com/5b904513fe252e361f3dd046c1ddc9eb.js"></script>
+
+
+
+## 6. 커맨드 객체를 이용해서 요청 파라미터 사용하기
+
+스프링은 폼의 파라미터의 값을 읽어와 설정하는 코드를 작성해야하는 불편함을 줄이기 위해 요청 파라미터의 값을 커맨드 객체에
+담아주는 기능을 제공한다. 
+
+커맨드 객체는 다음과 같이 요청 매핑 애노테이션이 적용된 메서드의 파라미터에 위치한다.
+
+```java
+  @PostMapping("/register/step3")
+  public String handleStep3(final RegisterRequest regReq) {
+    ...
+  } 
+```
+
+스프링은 커맨드 객체의 메서드를 사용해서 요청 파라미터의 값을 커맨드 객체에 복사한 뒤 파라미터로 전달한다.
+즉 스프링 MVC가 handleStep3() 메서드에 전달할 객체를 생성하고 그 객체의 세터 메서드를 이용해서 일치하는 요청 파라미터의 값을 전달한다.
+
+폼에 입력한 값을 커맨드 객체로 전달받아 회원가입을 처리하는 코드를 추가해보자.
+
+<script src="https://gist.github.com/f2ddf9c6a99aa1e8dac7bfe8acc6cffb.js"></script>
+
+<script src="https://gist.github.com/114a54aa4bf156809e2c84e92bfb3d03.js"></script>
+
+> *회원 가입에 성공했을 때 결과를 보여줄 step3.jsp*
+
+<script src="https://gist.github.com/66a93b0d08e19743646c9b317d6d2e54.js"></script>
+
+
+
+
+
+## 7. 뷰 JSP 코드에서 커맨드 객체 사용하기
+
+```xml
+<p><strong>${registerRequest.name}님 </strong>회원 가입을 완료했습니다.</p>
+```
+
+여기서 registerRequest가 커맨드 객체에 접근할 때 사용한 속성이다. 스프링 MVC는 커맨드 객체의 첫 글자를 소문자로 바꾼 클래스 이름과 동일한 속성 이름을 사용해서 커맨드 객체를 뷰에 전달한다.
+
+
+
+## 8. @ModelAttribute로 커맨드 객체 속성 이름 변경
+
+커맨드 객체에 접근할 때 사용할 속성 이름을 변경하고 싶다면 이 것을 사용하면 된다.
+
+```java
+  public String handleStep3(@ModelAttribute("formData") final RegisterRequest regReq) {
+    ...
+```
+
+위 설정을 사용하면 뷰 코드에서 "formData"라는 이름으로 커맨드 객체에 접근할 수 있다.
+
+
+
+## 9. 커맨드 객체와 스프링 폼 연동
+
+회원 정보 입력 폼에서 중복된 이메일이 입력되면 텅 빈 폼을 보여주므로 값을 다시 입력해야하는 불편점이 있다.
+다시 폼을 보여줄 때 커맨드 객체의 값을 폼에 채워주면 이런 불편함을 해소할 수 있다.
+
+<script src="https://gist.github.com/036ff73885ade7f9cbe06f02f45596d9.js"></script>
+
+스프링 MVC가 제공하는 커스텀 태그를 사용하면 좀 더 간단하게 출력할 수 있다.
+
+<script src="https://gist.github.com/34f7145b098d0a1eecd5e34c31d516aa.js"></script>
+
+\<form:form> 태그를 사용하려면 커맨드 객체가 존재해야 한다. 다음처럼 모델에 추가해주자.
+
+<script src="https://gist.github.com/b3352b7863d0a67700770b052c42cb4a.js"></script>
+
+
+
+## 10. 컨트롤러 구현 없는 경로 매핑
+
+회원 가입 후 첫 화면으로 링크를 이동하는 코드는 요청 경로와 뷰 이름을 연결해주는 것에 불과하다. 이를 위해 클래스를 만드는 것은 성가신 일이므로 다음처럼 간단하게 구현할 수 있다.
+
+```java
+@Override
+public void addViewControllers(ViewControllerRegistry registry) {
+  registry.addViewController("/main").setViewName("main");
+}
+```
+
+<script src="https://gist.github.com/10d06f8c79d63a7c9cbaec4b9fbf71ab.js"></script>
+
