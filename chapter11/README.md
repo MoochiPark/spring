@@ -252,3 +252,135 @@ public void addViewControllers(ViewControllerRegistry registry) {
 
 <script src="https://gist.github.com/10d06f8c79d63a7c9cbaec4b9fbf71ab.js"></script>
 
+
+
+
+
+## 12. 커맨드 객체 : 중첩, 콜렉션 프로퍼티
+
+세 개의 설문 항목과 응답자의 지역과 나이를 입력받는 설문 조사 정보를 담기 위해 다음 코드를 작성하자.
+
+```java
+@Getter
+@Setter
+public class Respondent {
+
+  private int age;
+  private String location;
+
+}
+```
+
+```java
+@Getter
+@Setter
+public class AnsweredData {
+  
+  private List<String> responses;
+  private Respondent res;
+  
+}
+```
+
+AnsweredData 클래스는 이전의 커맨드 객체와 비교하면 다음의 차이가 있다.
+
+- 리스트 타입의 프로퍼티가 존재한다.
+- 중첩 프로퍼티를 갖는다. res 프로퍼티는 Respondent 타입이므로 res.age, res.location을 가진다.
+
+
+
+스프링  MVC는 커맨드 객체가 리스트 타입의 프로퍼티를 가졌거나 중첩 프로퍼티를 가진 경우에도 요청 파라미터의 값을 알맞게
+커맨드 객체에 설정해준다. 규칙은 다음과 같다.
+
+- HTTP 요청 파라미터 이름이 "프로퍼티이름[인덱스]" 형식이면 List 타입 프로퍼티의 값 목록으로 처리한다.
+- HTTP 요청 파라미터 이름이 "프로퍼티이름.프로퍼티이름"과 같은 형식이면 중첩 프로퍼티 값을 처리한다.
+
+
+
+AnswerdData 클래스를 커맨드 객체로 사용하는 예제를 작성해보자.
+
+```java
+@Controller
+@RequestMapping("/survey")
+public class SurveyController {
+
+  @GetMapping
+  public String form() {
+    return "survey/surveyForm";
+  }
+
+  @PostMapping
+  public String submit(@ModelAttribute("ansData") final AnsweredData data) {
+    return "survey/submmited";
+  }
+
+}
+```
+
+```java
+  @Bean
+  public SurveyController surveyController() {
+    return new SurveyController();
+  }
+```
+
+이제 두 뷰를 위한 JSP를 만들자.
+
+```xml
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>설문조사</title>
+</head>
+<body>
+<h2>설문조사</h2>
+<form method="post">
+    <p>1.당신의 역할은?<br/>
+        <label><input type="radio" name="responses[0]" value="서버">서버 개발자</label>
+        <label><input type="radio" name="responses[0]" value="프론트">프론트개발자</label>
+        <label><input type="radio" name="responses[0]" value="풀스택">풀스택개발자</label>
+    </p>
+    <p>2. 가장 많이 사용하는 개발도구는?<br/>
+        <label><input type="radio" name="responses[1]" value="이클립스">이클립</label>
+        <label><input type="radio" name="responses[1]" value="IntelliJ">IntelliJ</label>
+        <label><input type="radio" name="responses[1]" value="서브라임">서브라임</label>
+    </p>
+    <p>3. 하고싶은 말<br/>
+        <input type="text" name="responses[2]">
+    </p>
+    <p>
+        <label>응답자 위치:<br/>
+            <input type="text" name="res.location">
+        </label>
+    </p>
+    <p>
+        <label>응답자 나이:<br/>
+            <input type="text" name="res.age">
+        </label>
+    </p>    
+    <input type="submit" value="전송">
+</form>
+</body>
+</html>
+```
+
+```xml
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<html>
+<head>
+    <title>응답 내용</title>
+</head>
+<body>
+<p>응답 내용:</p>
+    <ul>
+    <c:forEach var="response" items="${ansData.responses}" varStatus="status">
+        <li>${status.index + 1}번 문항: ${response}</li>
+    </c:forEach>
+</ul>
+<p>응답자 위치: ${ansData.res.location}</p>
+<p>응답자 나이: ${ansData.res.age}</p>
+</body>
+</html>
+```
+
