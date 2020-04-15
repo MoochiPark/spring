@@ -384,3 +384,26 @@ public class SurveyController {
 </html>
 ```
 
+
+
+## 13. Model을 통해 컨트롤러에서 뷰에 데이터 전달하기
+
+컨트롤러는 뷰가 응답 화면을 구성하는데 필요한 데이터를 생성해서 전달해야 한다.
+
+<script src="https://gist.github.com/81757b79be0fde34e6a6ef471f4d90aa.js"></script>
+
+<script src="https://gist.github.com/dc59bc2b09c658127c9a0780fd5d380f.js"></script>
+
+<script src="https://gist.github.com/8c4a76e6275340bec36d46ea86f12433.js"></script>
+
+
+
+### 13.1 ModelAndView를 통한 뷰 선택과 모델 전달
+
+ModelAndView를 이용하면 기존 방식의 두 가지를 한 번에 처리할 수 있다.
+
+- Model을 이용해서 뷰에 전달할 데이터 설정
+- 결과를 보여줄 뷰 이름을 리턴
+
+<script src="https://gist.github.com/3f982815f0ac5a889ef134670f9e4e9a.js"></script>
+
