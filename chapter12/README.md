@@ -209,8 +209,6 @@ public class MvcConfig implements WebMvcConfigurer {
 
 ### Bean Validation 2.0의 주요 속성
 
-
-
 | 애노테이션                     | 설명                                                     | 지원 타입 |
 | ------------------------------ | -------------------------------------------------------- | --------- |
 | @NotEmpty                      |                                                          |           |
