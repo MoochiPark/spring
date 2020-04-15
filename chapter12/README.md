@@ -155,3 +155,69 @@ RegisterController 컨트롤러의 요청 처리 메서드인 handleStep1, 2, 3(
 
 @Valid 애노테이션은 Bean Validation 스펙에 정의되어 있다. 이 스펙은 @NotNull, Digits, @Size 등의 애노테이션을 
 함께 정의하고 있다. 이것들을 사용하면 Validator 작성 없이 애노테이션만으로 커맨드 객체의 값 검증을 처리할 수 있다.
+
+Beab Validation이 제공하는 애노테이션을 이용해서 커맨드 객체의 값을 검증하는 방법은 다음과 같다.
+
+- Bean Validation과 관련된 의존을 설정에 추가한다.
+- 커맨드 객체에 @NotNull, @Digits 등을 사용해서 검증 규칙을 설정한다.
+
+
+
+먼저 관련 의존을 추가하자. 먼저 API를 정의한 모듈과 이 API를 구현한 프로바이더인 Hibernate Validator를 추가하자.
+
+```groovy
+    implementation 'javax.validation:validation-api:2.0.1.Final'
+    implementation 'org.hibernate.validator:hibernate-validator:7.0.0.Alpha1'
+```
+
+다음과 같이 커맨드 객체에 Bean Validation과 프로바이더가 제공하는 애노테이션을 사용해서 값 검증 규칙을 설정할 수 있다.
+
+<script src="https://gist.github.com/4d1336d7dbfe4466cf8451ce4eacd872.js"></script>
+
+각각 애노테이션은 이름만 보면 어떤 검사를 하는지 쉽게 유추할 수 있다.
+
+Bean Validation 애노테이션들을 사용했다면 그 다음은 이 적용한 커맨드 객체를 검증할 수 있는 OptionalValidatorFacotoryBean 클래스를 빈으로 등록하는 것이다.
+
+@EnableWebMvc 애노테이션을 사용하면 OptionalValidatorFactoryBean을 글로벌 범위 Validator로 등록하므로
+추가로 설정할 것은 없다.
+
+```java
+@Configuration
+@EnableWebMvc // OptionalValidatorFactoryBean을 글로벌 범위 Validator로 등록
+public class MvcConfig implements WebMvcConfigurer {
+...
+```
+
+만약 글로벌 범위 Validator를 따로 설정했다면 해당 설정을 삭제하자. 따로 설정하면 OptionalValidatorFactoryBean을
+글로벌 범위 Validator로 사용하지 않는다. 
+
+
+
+### Bean Validation 1.1의 주요 속성
+
+| 애노테이션                    | 주요 속성 | 설명                                               | 지원 타입            |
+| ----------------------------- | --------- | -------------------------------------------------- | -------------------- |
+| @AssertTrue<br />@AssertFalse |           | 값이 true(false)인지 검사. null은 유효하다고 판단. | boolean<br />Boolean |
+| @DecimalMax<br />@DecimalMin  | value     | 지정한 값보다 작거나 같은지, 크거나 같은지 검사.   |                      |
+| @Max<br />@Min                | value     |                                                    |                      |
+| @Digits                       |           | 자릿수가 지정한 크기를 넘지 않는지 검사.           |                      |
+| @Size                         | min, max  | 지정한 범위 안에 있는지 검사.                      |                      |
+| @Null<br />@NotNull           |           |                                                    |                      |
+| @Pattern                      |           | 값이 정규표현식과 일치하는지 검사.                 |                      |
+
+
+
+### Bean Validation 2.0의 주요 속성
+
+
+
+| 애노테이션                     | 설명                                                     | 지원 타입 |
+| ------------------------------ | -------------------------------------------------------- | --------- |
+| @NotEmpty                      |                                                          |           |
+| @NotBlank                      |                                                          |           |
+| @Positive<br />@PositiveOrZero | 양수인지 검사한다.<br />0 또는 양수인지 검사한다.        |           |
+| @Negative<br />@NegativeOrZero | 위의 반대.                                               |           |
+| @Email                         |                                                          |           |
+| @Future<br />@@FutureOrPresent | 해당 시간이 미래인지 검사.<br />미래 혹은 현재인지 검사. |           |
+| @Past<br />@PastOrPresent      | 위의 반대                                                |           |
+
