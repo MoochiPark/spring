@@ -155,7 +155,7 @@ implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.11.0.rc
 
 
 
-### 3.2 날짜 형식 변환 처리 : 기본 적용 설정
+### 3.3 날짜 형식 변환 처리 : 기본 적용 설정
 
 날짜 형식을 변환할 모든 대상에 @JsonFormat을 붙여야 한다면 상당히 귀찮다.
 이런 귀찮음을 피하려면 날짜 타입에 해당하는 모든 대상에 동일한 변환 규칙을 적용할 수 있어야 한다.
@@ -168,7 +168,54 @@ implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.11.0.rc
 
 이 코드는 JSON으로 변환할 때 사용할 ObjectMapper를 생성한다. Jackson2ObjectMappingBuilder는
 ObjectMapper를 보다 쉽게 생성할 수 있도록 스프링이 제공하는 클래스다.
-위 설정은 Jackson이 날짜 형식을 출력할 때 유닉스 타임 스탬프로 출력하는
+위 설정은 Jackson이 날짜 형식을 출력할 때 유닉스 타임 스탬프로 출력하는 기능을 비활성화한다.
+이 기능을 비활성화 하면 ObjectMapper는 날짜 타입의 값을 ISO-8601 형식으로 출력한다.
+
+새로 생성한 ObejctMapper를 사용하는 MappingJackson2HttpMessageConverter 객체를 converters의 첫 번째
+항목으로 등록하면 설정이 끝난다.
+
+> *출력 화면*
+
+<img src="/Users/daewon/Library/Application Support/typora-user-images/image-20200427170307895.png" alt="image-20200427170307895" style="zoom:67%;" />
+
+모든 Date 타입의 값을 원하는 형식으로 설정하고 싶다면 `simpleDateFormat()` 메서드를 통해 패턴을 지정한다.
+
+```java
+...
+  .json()
+  .simpleDateFormat("yyyyMMddHHmmss")
+...
+```
+
+위 처럼 사용해도 LocalDateTime 타입 변환에는 해당 패턴을 사용하지 않는다.
+모든 LocalDateTime 타입에 대해 ISO-8601 형식 대신 원하는 패턴을 지정하고 싶다면 `serializerByType()` 메서드를
+통해 LocalDateTime 타입에 대한 JsonSerializer를 직접 설정하면 된다.
+
+```java
+  DateTimeFormatter formatter =
+    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+  ...
+  .json()
+  .serializerByType(LocalDateTime.class,
+                   new LocalDateTimeSerializer(formatter))
+  .build();
+```
 
 
 
+> MappingJackson2HttpMessageConverter가 사용할 ObjectMapper 자체에 시간 타입을 위한
+> 변환 설정을 추가해도 개별 속성에 적용한 @JsonFormat 애노테이션 설정이 우선한다.
+
+
+
+### 3.4 응답 데이터의 컨텐츠 형식
+
+크롬 개바랒 도구의 네트워크 탭을 보면 응답 헤더의 `Content-Type`이 `application/json`인 것을 확인할 수 있다.
+
+
+
+## 4. @RequestBody로 JSON 요청 처리
+
+지금까지 응답을 JSON으로 변환해봤으니 반대로 JSON 형식의 요청 데이터를 자바 객체로 변환하는 기능에 대해 살펴보자.
+POST 방식이나 PUT 방식을 사용하면 `name=이름&age=17`과 같은 쿼리 문자열 형식이 아니라 JSON 형식을 요청 데이터로 
+전달할 수 있다.
