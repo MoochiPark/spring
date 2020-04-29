@@ -51,6 +51,11 @@
 
   #### MVC 1 : 요청 매핑, 커맨드 객체, 리다이렉트, 폼 태그, 모델
 
+- ### [Chapter 12]( https://github.com/MoochiPark/spring/tree/master/chapter12 )
+
+  #### MVC 2 : 메시지, 커맨드 객체 검증
+
+<br>
 
 ## *Made by*
 
